@@ -18,7 +18,7 @@ class PropertyResource(Resource):
         # user_id is not needed
         property = PropertyModel.query.get(property_id)
 
-        if property is None:
+        if property is None or property.user != user_id:
             raise BadRequest("Property could not be found")
 
 
