@@ -2,16 +2,20 @@
 import os
 import sys
 import requests
-from urlparse import urlsplit
+try:
+    # Python 3
+    from urllib.parse import urlsplit
+except ImportError:
+    # Python 2
+    from urlparse import urlsplit
 import docopt
-import docker_base
 import lue
 
 
 doc_string = """\
 Manage the property service
 
-usage: {command} [--help] <uri> (scan|clear) [<arguments>...]
+usage: {command} [--help] <uri> (scan|remove) [<arguments>...]
 
 options:
     -h --help   Show this screen
@@ -19,7 +23,7 @@ options:
 
 Commands:
     scan    Scan files or directories and add property resources to service
-    clear   Clear property resources
+    remove  Remove property resources
 
 See '{command} help <command>' for more information on a specific
 command.
@@ -113,10 +117,11 @@ def scan_for_properties(
 scan_doc_string = """\
 Scan one or more files or directories for LUE datasets containing properties
 
-usage: {command} <uri> scan <file>...
+usage: {command} <uri> scan [--rewrite_path=<pattern>] <file>...
 
 options:
     -h --help       Show this screen
+    --rewrite_path=<pattern>  Replace prefix of certain paths
 
 arguments:
     file    Names of files and/or directories to scan
@@ -129,6 +134,11 @@ the service which are not in the scanned directory are also not touched.
 The names of files and/or directories can be passed. Filenames must point
 to LUE dataset. Directory-names must point to directories. All LUE datasets
 present in the directory will be scanned.
+
+Optionally, the prefix of dataset pathnames can be replaced by some
+other prefix. This allows for scanning of local datasets that are
+mounted into a container at some other path. To use this feature,
+a <from_prefix>:<to_prefix> pattern must be passed.
 """.format(
         command = os.path.basename(sys.argv[0]))
 
@@ -169,11 +179,19 @@ def scan(
         argv):
     arguments = docopt.docopt(scan_doc_string, argv=argv)
     pathnames = arguments["<file>"]
+    rewrite_path = arguments["--rewrite_path"]
+    rewrite_path = [] if rewrite_path is None else rewrite_path.split(":")
 
     properties = []
 
     for pathname in pathnames:
         properties += scan_for_properties(pathname)
+
+    if rewrite_path is not None:
+        for property in properties:
+            if property.dataset_pathname.startswith(rewrite_path[0]):
+                property.dataset_pathname = property.dataset_pathname.replace(
+                    rewrite_path[0], rewrite_path[1])
 
     response = requests.get(uri)
 
@@ -188,31 +206,50 @@ def scan(
             add_property(uri, property)
 
 
-clear_doc_string = """\
-Clear all property resources
+remove_doc_string = """\
+Remove property resources
 
-usage: {command} <uri> clear
+usage: {command} <uri> remove [<properties>...]
 
 options:
     -h --help       Show this screen
+    properties      Properties to remove
 """.format(
         command = os.path.basename(sys.argv[0]))
 
 
-def clear(
+def remove(
         uri,
         argv):
-    arguments = docopt.docopt(clear_doc_string, argv=argv)
+    arguments = docopt.docopt(remove_doc_string, argv=argv)
+    properties = arguments["<properties>"]
     response = requests.get(uri)
 
     if response.status_code != 200:
         raise RuntimeError("cannot get collection of properties")
 
-    available_properties = response.json()["properties"]
     parts = urlsplit(uri)
     uri = "{}://{}".format(parts.scheme, parts.netloc)
+    available_properties = response.json()["properties"]
+    properties_to_remove = []
 
-    for property in available_properties:
+    if not properties:
+        # Remove all properties.
+        properties_to_remove = available_properties
+    else:
+        # Filter available properties by the ones passed in.
+        uris = [property["_links"]["self"] for property in \
+            available_properties]
+
+        for property_uri in properties:
+            idx = uris.index(property_uri)
+
+            if idx == -1:
+                raise RuntimeError("property to remove does not exist")
+
+            properties_to_remove.append(available_properties[idx])
+
+    for property in properties_to_remove:
         delete_uri = property["_links"]["self"]
         response = requests.delete(uri + delete_uri)
 
@@ -224,16 +261,27 @@ if __name__ == "__main__":
     arguments = docopt.docopt(doc_string, version="0.0.0", options_first=True)
     uri = arguments["<uri>"]
 
-    if arguments["clear"]:
-        command = "clear"
+    if arguments["remove"]:
+        command = "remove"
     elif arguments["scan"]:
         command = "scan"
 
     argv = [uri] + [command] + arguments["<arguments>"]
     functions = {
-        "clear": clear,
+        "remove": remove,
         "scan": scan,
     }
-    status = docker_base.call_subcommand(functions[command], uri, argv)
+
+    status = 1
+
+    try:
+        functions[command](uri, argv)
+        status = 0
+    except SystemExit:
+        raise
+    except RuntimeError as exception:
+        sys.stderr.write("{}\n".format(exception))
+
+    # status = docker_base.call_subcommand(functions[command], uri, argv)
 
     sys.exit(status)

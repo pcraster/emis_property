@@ -12,6 +12,10 @@ class Configuration:
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    # EMIS_PROPERTY_DATA = \
+    #     os.environ.get("EMIS_PROPERTY_DATA") or \
+    #     tempfile.gettempdir()
+
 
     @staticmethod
     def init_app(
