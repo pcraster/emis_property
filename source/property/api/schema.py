@@ -27,19 +27,17 @@ class PropertySchema(ma.Schema):
 
     class Meta:
         # Fields to include in the serialized result.
-        fields = ("user", "name", "pathname", "_links")
+        fields = ("name", "pathname", "_links")
 
 
     id = fields.UUID(dump_only=True)
-    user = fields.UUID(required=True)
     name = fields.Str(required=True)
     pathname = fields.Str(required=True)
     posted_at = fields.DateTime(dump_only=True,
         missing=datetime.datetime.utcnow().isoformat())
     _links = ma.Hyperlinks({
-            "self": ma.URLFor("api.property", user_id="<user>",
-                property_id="<id>"),
-            "collection": ma.URLFor("api.properties", user_id="<user>")
+            "self": ma.URLFor("api.property", property_id="<id>"),
+            "collection": ma.URLFor("api.properties")
         })
 
 
@@ -77,7 +75,6 @@ class PropertySchema(ma.Schema):
             data):
         return PropertyModel(
             id=uuid.uuid4(),
-            user=data["user"],
             name=data["name"],
             pathname = data["pathname"],
             posted_at=datetime.datetime.utcnow()

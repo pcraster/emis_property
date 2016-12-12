@@ -16,10 +16,6 @@ class PropertyTestCase(unittest.TestCase):
         self.client = self.app.test_client()
         db.create_all()
 
-        self.user1 = uuid.uuid4()
-        self.user2 = uuid.uuid4()
-        self.user3 = uuid.uuid4()
-
 
     def tearDown(self):
         db.session.remove()
@@ -29,22 +25,16 @@ class PropertyTestCase(unittest.TestCase):
 
     def post_properties(self):
 
-        # user1: two properties
-        # user2: one property
-        # user3: no property
         payloads = [
                 {
-                    "user": self.user1,
                     "name": "my_name1",
                     "pathname": "my_pathname1",
                 },
                 {
-                    "user": self.user2,
                     "name": "my_name2",
                     "pathname": "my_pathname2",
                 },
                 {
-                    "user": self.user1,
                     "name": "my_name3",
                     "pathname": "my_pathname3",
                 },
@@ -58,38 +48,6 @@ class PropertyTestCase(unittest.TestCase):
 
             self.assertEqual(response.status_code, 201, "{}: {}".format(
                 response.status_code, data))
-
-    def do_test_get_properties_by_user(self,
-            user_id,
-            nr_results_required):
-
-        self.post_properties()
-
-        response = self.client.get("/properties/{}".format(user_id))
-        data = response.data.decode("utf8")
-
-        self.assertEqual(response.status_code, 200, "{}: {}".format(
-            response.status_code, data))
-
-        data = json.loads(data)
-
-        self.assertTrue("properties" in data)
-
-        properties = data["properties"]
-
-        self.assertEqual(len(properties), nr_results_required)
-
-
-    def test_get_properties_by_user1(self):
-        self.do_test_get_properties_by_user(self.user1, 2)
-
-
-    def test_get_properties_by_user2(self):
-        self.do_test_get_properties_by_user(self.user2, 1)
-
-
-    def test_get_properties_by_user3(self):
-        self.do_test_get_properties_by_user(self.user3, 0)
 
 
     def test_get_all_properties1(self):
@@ -190,9 +148,7 @@ class PropertyTestCase(unittest.TestCase):
 
 
     def test_post_property(self):
-        user_id = uuid.uuid4()
         payload = {
-                "user": user_id,
                 "name": "my_name",
                 "pathname": "my_pathname",
             }
@@ -226,8 +182,6 @@ class PropertyTestCase(unittest.TestCase):
         self.assertTrue("self" in links)
         self.assertTrue("collection" in links)
 
-        self.do_test_get_properties_by_user(user_id, 1)
-
 
     def test_post_bad_request(self):
         response = self.client.post("/properties")
@@ -254,6 +208,30 @@ class PropertyTestCase(unittest.TestCase):
         data = json.loads(data)
 
         self.assertTrue("message" in data)
+
+
+    def test_delete_property(self):
+        payload = {
+                "name": "my_name",
+                "pathname": "my_pathname",
+            }
+        response = self.client.post("/properties",
+            data=json.dumps({"property": payload}),
+            content_type="application/json")
+        data = response.data.decode("utf8")
+
+        self.assertEqual(response.status_code, 201, "{}: {}".format(
+            response.status_code, data))
+
+        data = json.loads(data)
+        property = data["property"]
+        links = property["_links"]
+        self_uri = links["self"]
+
+        response = self.client.delete(self_uri)
+        data = response.data.decode("utf8")
+
+        self.assertEqual(response.status_code, 204)
 
 
 if __name__ == "__main__":

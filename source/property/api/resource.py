@@ -12,13 +12,11 @@ property_schema = PropertySchema()
 class PropertyResource(Resource):
 
     def get(self,
-            user_id,
             property_id):
 
-        # user_id is not needed
         property = PropertyModel.query.get(property_id)
 
-        if property is None or property.user != user_id:
+        if property is None:
             raise BadRequest("Property could not be found")
 
 
@@ -31,27 +29,37 @@ class PropertyResource(Resource):
         return data
 
 
-class PropertiesResource(Resource):
+    def delete(self,
+            property_id):
 
-    def get(self,
-            user_id):
+        property = PropertyModel.query.get(property_id)
 
-        properties = PropertyModel.query.filter_by(user=user_id)
-        data, errors = property_schema.dump(properties, many=True)
+        if property is None:
+            raise BadRequest("Property could not be found")
 
-        if errors:
-            raise InternalServerError(errors)
 
+        db.session.delete(property)
+        db.session.commit()
+
+
+        # From property to dict representing a property.
+        data, errors = property_schema.dump(property)
+        assert not errors, errors
         assert isinstance(data, dict), data
 
-
-        return data
-
-
-class PropertiesAllResource(Resource):
+        # # Remove links, there is no resource anymore.
+        # # TODO Use Marshmallow contexts?
+        # del data["property"]["_links"]
 
 
-    # TODO Only call this from admin interface!
+        # return data, 204
+
+        return "", 204
+
+
+class PropertiesResource(Resource):
+
+
     def get(self):
 
         properties = PropertyModel.query.all()

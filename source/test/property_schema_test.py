@@ -43,25 +43,8 @@ class PropertySchemaTestCase(unittest.TestCase):
 
         self.assertTrue(errors)
         self.assertEqual(errors, {
-                "user": ["Missing data for required field."],
                 "name": ["Missing data for required field."],
                 "pathname": ["Missing data for required field."],
-            })
-
-
-    def test_invalid_user(self):
-        client_data = {
-                "property": {
-                    "user": "blah",
-                    "name": "my_name",
-                    "pathname": "my_pathname"
-                }
-            }
-        data, errors = self.schema.load(client_data)
-
-        self.assertTrue(errors)
-        self.assertEqual(errors, {
-                "user": ["Not a valid UUID."]
             })
 
 
@@ -69,7 +52,6 @@ class PropertySchemaTestCase(unittest.TestCase):
 
         client_data = {
                 "property": {
-                    "user": uuid.uuid4(),
                     "name": "my_name",
                     "pathname": "my_pathname"
                 }
@@ -80,9 +62,6 @@ class PropertySchemaTestCase(unittest.TestCase):
 
         self.assertTrue(hasattr(data, "id"))
         self.assertTrue(isinstance(data.id, uuid.UUID))
-
-        self.assertTrue(hasattr(data, "user"))
-        self.assertTrue(isinstance(data.user, uuid.UUID))
 
         self.assertTrue(hasattr(data, "name"))
         self.assertEqual(data.name, "my_name")
@@ -102,7 +81,6 @@ class PropertySchemaTestCase(unittest.TestCase):
         property = data["property"]
 
         self.assertTrue("id" not in property)
-        self.assertTrue("user" in property)
         self.assertTrue("posted_at" not in property)
 
         self.assertTrue("name" in property)
