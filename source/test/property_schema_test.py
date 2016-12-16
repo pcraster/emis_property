@@ -95,6 +95,7 @@ class PropertySchemaTestCase(unittest.TestCase):
 
         self.assertTrue("self" in links)
         self.assertTrue("collection" in links)
+        print(links["self"])
 
 
 if __name__ == "__main__":

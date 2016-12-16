@@ -250,8 +250,8 @@ def remove(
             properties_to_remove.append(available_properties[idx])
 
     for property in properties_to_remove:
-        delete_uri = property["_links"]["self"]
-        response = requests.delete(uri + delete_uri)
+        delete_uri = uri + property["_links"]["self"]
+        response = requests.delete(delete_uri)
 
         if response.status_code != 204:
             raise RuntimeError("cannot delete property")
