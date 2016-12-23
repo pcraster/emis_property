@@ -61,6 +61,7 @@ def create_app(
 
 
     with app.app_context():
+        # http://flask-sqlalchemy.pocoo.org/2.1/api/#configuration
         # http://stackoverflow.com/questions/19437883/when-scattering-flask-models-runtimeerror-application-not-registered-on-db-w
         # Extensions like Flask-SQLAlchemy now know what the "current" app
         # is while within this block.
