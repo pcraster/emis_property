@@ -3,8 +3,9 @@
 set -e
 
 
+echo "Starting service in $EMIS_CONFIGURATION mode"
+
 if [[ "$EMIS_CONFIGURATION" == @("development"|"test") ]]; then
-    python -m unittest discover test *_test.py
     exec python server_flask.py
 else
     # Acceptance, production
