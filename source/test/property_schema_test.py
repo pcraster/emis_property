@@ -1,15 +1,15 @@
 import datetime
 import unittest
 import uuid
-from property import create_app
-from property.api.schema import *
+from emis_property import create_app
+from emis_property.api.schema import *
 
 
 class PropertySchemaTestCase(unittest.TestCase):
 
 
     def setUp(self):
-        self.app = create_app("testing")
+        self.app = create_app("test")
 
         self.app_context = self.app.app_context()
         self.app_context.push()
