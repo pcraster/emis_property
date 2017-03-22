@@ -6,6 +6,4 @@ COPY cmd.sh server.py server_flask.py uwsgi.ini /
 COPY emis_property /emis_property
 COPY test /test
 
-EXPOSE 5000
-
 CMD ["/cmd.sh"]
