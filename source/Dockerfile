@@ -1,4 +1,4 @@
-FROM pcraster/emis_base:latest
+FROM pcraster/emis_base:1.0.0
 
 MAINTAINER Kor de Jong <k.dejong1@uu.nl>
 
